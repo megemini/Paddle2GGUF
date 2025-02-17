@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-paddle2gguf = "paddle2gguf.main:main"
+paddle2gguf = "paddle2gguf.convert:main"
 
 [build-system]
 requires = ["hatchling"]
