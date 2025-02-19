@@ -12,7 +12,7 @@ def paddle_to_onnx(
     onnx_save_path,
     opset_version=9,
 ):
-    # 调用 Paddle2ONNX API
+    # run Paddle2ONNX API
     cmd = [
         "paddle2onnx",
         "--model_dir",
@@ -31,13 +31,13 @@ def paddle_to_onnx(
 
 
 def onnx_to_torch(onnx_model_path, torch_save_path):
-    # 加载 ONNX 模型并转换为 PyTorch 模型
+    # convert ONNX to PyTorch
     torch_model = onnx2torch.convert(onnx_model_path)
     torch.save(torch_model, torch_save_path)
 
 
 def torch_to_gguf(torch_model_path, gguf_save_path, llama_cpp_dir, outtype="f16"):
-    # 调用 llama.cpp 的 convert_hf_to_gguf.py 脚本
+    # run llama.cpp script convert_hf_to_gguf.py
     script_path = os.path.join(llama_cpp_dir, "convert_hf_to_gguf.py")
     cmd = [
         "python",
@@ -66,22 +66,40 @@ def main():
         help="Filename of the Paddle model parameters.",
     )
     parser.add_argument(
-        "--onnx_save_path",
+        "--onnx_save_dir",
+        required=False,
+        default="./onnx",
+        help="Dir to save the ONNX model.",
+    )
+    parser.add_argument(
+        "--onnx_model_name",
         required=False,
         default="model.onnx",
-        help="Path to save the ONNX model.",
+        help="ONNX model name.",
     )
     parser.add_argument(
-        "--torch_save_path",
+        "--torch_save_dir",
+        required=False,
+        default="./torch",
+        help="Dir to save the PyTorch model.",
+    )
+    parser.add_argument(
+        "--torch_model_name",
         required=False,
         default="model.pth",
-        help="Path to save the PyTorch model.",
+        help="PyTorch model name.",
     )
     parser.add_argument(
-        "--gguf_save_path",
+        "--gguf_save_dir",
+        required=False,
+        default="./gguf",
+        help="Dir to save the GGUF model.",
+    )
+    parser.add_argument(
+        "--gguf_model_name",
         required=False,
         default="model.gguf",
-        help="Path to save the GGUF model.",
+        help="GGUF model name.",
     )
     parser.add_argument(
         "--llama_cpp_dir", required=True, help="Directory of the llama.cpp repository."
@@ -101,26 +119,38 @@ def main():
 
     # Step 1: Paddle to ONNX
     print(">>> Converting Paddle model to ONNX...")
+    if not os.path.exists(args.onnx_save_dir):
+        os.makedirs(args.onnx_save_dir)
+
+    onnx_model_path = os.path.join(args.onnx_save_dir, args.onnx_model_name)
     paddle_to_onnx(
         args.paddle_model_dir,
         args.paddle_model_file,
         args.paddle_params_file,
-        args.onnx_save_path,
+        onnx_model_path,
         args.opset_version,
     )
-    print(">>> ONNX model saved to:", args.onnx_save_path)
+    print(">>> ONNX model saved to:", onnx_model_path)
 
     # Step 2: ONNX to Torch
     print(">>> Converting ONNX model to PyTorch...")
-    onnx_to_torch(args.onnx_save_path, args.torch_save_path)
-    print(">>> PyTorch model saved to:", args.torch_save_path)
+    if not os.path.exists(args.torch_save_dir):
+        os.makedirs(args.torch_save_dir)
+
+    torch_model_path = os.path.join(args.torch_save_dir, args.torch_model_name)
+    onnx_to_torch(onnx_model_path, torch_model_path)
+    print(">>> PyTorch model saved to:", torch_model_path)
 
     # Step 3: Torch to GGUF
     print(">>> Converting PyTorch model to GGUF...")
+    if not os.path.exists(args.gguf_save_dir):
+        os.makedirs(args.gguf_save_dir)
+
+    gguf_model_path = os.path.join(args.gguf_save_dir, args.gguf_model_name)
     torch_to_gguf(
-        args.torch_save_path, args.gguf_save_path, args.llama_cpp_dir, args.outtype
+        args.torch_save_dir, gguf_model_path, args.llama_cpp_dir, args.outtype
     )
-    print(">>> GGUF model saved to:", args.gguf_save_path)
+    print(">>> GGUF model saved to:", gguf_model_path)
 
 
 if __name__ == "__main__":
